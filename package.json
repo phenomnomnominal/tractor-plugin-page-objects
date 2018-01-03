@@ -56,7 +56,7 @@
     "rimraf": "^2.6.2",
     "sinon": "^4.0.0",
     "sinon-chai": "^2.14.0",
-    "tractor-config-loader": "^0.4.3",
+    "tractor-config-loader": "^0.5.0",
     "tractor-error-handler": "^0.2.3",
     "tractor-file-structure": "^0.5.3",
     "tractor-logger": "^0.1.0",
