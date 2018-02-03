@@ -16,3 +16,17 @@ tractor-page-objects > div {
         background-image: url('./move-page-object-to-directory.png');
     }
 }
+
+.deprecated {
+    background: rgba(255, 60, 60, 1);
+    padding: 0.5rem;
+    color: white;
+    margin-bottom: .5rem;
+}
+
+.unparseable {
+    background: rgba(255, 255, 20, 1);
+    padding: .5rem;
+    display: inline-block;
+    margin-bottom: .5rem;
+}

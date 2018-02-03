@@ -1,10 +1,13 @@
-// Utilities:
-import assert from 'assert';
-
 // Module:
 import { PageObjectsModule } from '../page-objects.module';
 
+// Queries:
+const PAGE_OBJECT_QUERY = 'AssignmentExpression[left.object.name="module"] > CallExpression > FunctionExpression > BlockStatement';
+const ELEMENTS_QUERY = `${PAGE_OBJECT_QUERY} > VariableDeclaration > VariableDeclarator > FunctionExpression > BlockStatement > ExpressionStatement > AssignmentExpression[left.property]`;
+const ACTIONS_QUERY = `${PAGE_OBJECT_QUERY} > ExpressionStatement > AssignmentExpression[left.property]`;
+
 // Dependencies:
+import esquery from 'esquery';
 import '../models/page-object';
 import './action-parser.service';
 import './element-parser.service';
@@ -12,68 +15,62 @@ import './element-parser.service';
 function PageObjectParserService (
     PageObjectModel,
     actionParserService,
+    astCompareService,
     elementParserService,
     persistentStateService
 ) {
     return { parse };
 
-    function parse (pageObjectFile) {
+    function parse (pageObjectFile, availablePageObjects) {
+        let pageObject = new PageObjectModel(pageObjectFile);
+        pageObject.name = pageObjectFile.name;
+
+        let astObject = pageObjectFile.ast;
+
+        let meta;
         try {
-            let ast = pageObjectFile.ast;
-            let [firstComment] = ast.comments;
-            var meta = JSON.parse(firstComment.value);
-
-            let pageObject = new PageObjectModel({
-                isSaved: true,
-                file: pageObjectFile
-            });
-            pageObject.name = meta.name;
-            let state = persistentStateService.get(pageObject.name);
-
-            let [pageObjectModuleExpressionStatement] = ast.body;
-            let moduleBlockStatement = pageObjectModuleExpressionStatement.expression.right.callee.body;
-
-            moduleBlockStatement.body.forEach((statement, index) => {
-                try {
-                    assert(statement.argument.name);
-                    return;
-                // eslint-disable-next-line no-empty
-                } catch (e) { }
-
-                try {
-                    let [constructorDeclarator] = statement.declarations;
-                    let constructorBlockStatement = constructorDeclarator.init.body;
-                    constructorBlockStatement.body.forEach(statement => {
-                        let domElement = elementParserService.parse(pageObject, statement);
-                        assert(domElement);
-                        domElement.name = meta.elements[pageObject.domElements.length].name;
-                        domElement.minimised = !!state[domElement.name];
-                        pageObject.elements.push(domElement);
-                        pageObject.domElements.push(domElement);
-                    });
-                    return;
-                // eslint-disable-next-line no-empty
-                } catch (e) { }
-
-                try {
-                    let actionMeta = meta.actions[pageObject.actions.length];
-                    let action = actionParserService.parse(pageObject, statement, actionMeta);
-                    assert(action);
-                    action.name = actionMeta.name;
-                    action.minimised = !!state[action.name];
-                    pageObject.actions.push(action);
-                    return;
-                // eslint-disable-next-line no-empty
-                } catch (e) { }
-
-                // eslint-disable-next-line no-console
-                console.warn('Invalid Page Object:', statement, index);
-            });
-
-            return pageObject;
+            let [metaComment] = astObject.comments;
+            meta = JSON.parse(metaComment.value);
         } catch (e) {
-            return new PageObjectModel();
+            // If we can't parse the meta comment, we just bail straight away:
+            pageObject.isUnparseable = astObject;
+            return pageObject;
         }
+
+        pageObject.name = meta.name;
+        pageObject.version = meta.version;
+        pageObject.availablePageObjects = availablePageObjects.filter(availablePageObject => {
+            return availablePageObject.name !== pageObject.name;
+        });
+
+        let state = persistentStateService.get(pageObject.name);
+
+        let elements = esquery(astObject, ELEMENTS_QUERY);
+        elements.forEach(elementASTObject => {
+            let elementMeta = meta.elements[pageObject.domElements.length];
+            let domElement = elementParserService.parse(pageObject, elementASTObject, elementMeta);
+            domElement.minimised = !!state[domElement.name];
+            pageObject.elements.push(domElement);
+            pageObject.domElements.push(domElement);
+        });
+
+        let actions = esquery(astObject, ACTIONS_QUERY);
+        actions.forEach(actionASTObject => {
+            let actionMeta = meta.actions[pageObject.actions.length];
+            let action = actionParserService.parse(pageObject, actionASTObject, actionMeta);
+            action.minimised = !!state[action.name];
+            pageObject.actions.push(action);
+        });
+
+        let parsedCorrectly = astCompareService.compare(astObject, pageObject.ast);
+        if (!parsedCorrectly) {
+            pageObject.isUnparseable = astObject;
+            if (meta.version !== pageObject.version) {
+                pageObject.outdated = true;
+            }
+        }
+
+        return pageObject;
     }
 }
 

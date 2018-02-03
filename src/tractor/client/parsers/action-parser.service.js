@@ -1,60 +1,58 @@
-// Utilities:
-import assert from 'assert';
-
 // Module:
 import { PageObjectsModule } from '../page-objects.module';
 
+// Queries:
+const ACTION_FUNCTION_QUERY = 'FunctionExpression[params]';
+const INTERACTION_QUERY = 'FunctionExpression > BlockStatement > ExpressionStatement[expression.left.name="result"]';
+
 // Dependencies:
+import esquery from 'esquery';
+import '../deprecated/action-parser.service';
 import '../models/action';
 import './interaction-parser.service';
-import './parameter-parser.service';
 
 function ActionParserService (
     ActionModel,
-    interactionParserService,
-    parameterParserService
+    ValueModel,
+    astCompareService,
+    deprecatedActionParserService,
+    interactionParserService
 ) {
     return { parse };
 
-    function parse (pageObject, astObject, meta) {
+    function parse (pageObject, astObject, meta = {}) {
         let action = new ActionModel(pageObject);
+        action.name = meta.name;
 
-        let actionFunctionExpression = astObject.expression.right;
-        let actionBody = actionFunctionExpression.body.body;
-
-        actionFunctionExpression.params.forEach(() => {
-            let parameter = parameterParserService.parse(action);
-            assert(parameter);
-            parameter.name = meta.parameters[action.parameters.length].name;
+        let [actionFunction] = esquery(astObject, ACTION_FUNCTION_QUERY);
+        actionFunction.params.forEach(param => {
+            let parameterMeta = meta.parameters[action.parameters.length];
+            let parameter = new ValueModel(parameterMeta);
+            if (!parameterMeta) {
+                parameter.isUnparseable = param;
+            }
             action.parameters.push(parameter);
         });
 
-        actionBody.forEach((statement, index) => {
-            let notSelf = false;
-            let notInteraction = false;
+        let interactions = esquery(astObject, INTERACTION_QUERY);
+        if (interactions.length) {
+            interactions.forEach(interactionASTObject => {
+                let interaction = interactionParserService.parse(action, interactionASTObject);
+                action.interactions.push(interaction);
+            });
+        }
 
-            try {
-                let [selfVariableDeclarator] = statement.declarations;
-                assert(selfVariableDeclarator.id.name === 'self');
-            } catch (e) {
-                notSelf = true;
-            }
+        // Here we return if we parsed correctly, otherwise attempt to use the
+        // deprecatedActionParserService.
+        //
+        // If the deprecatedActionParserService also fails, the action will be marked
+        // as unparseable.
+        let parsedCorrectly = astCompareService.compare(astObject, action.ast);
+        if (parsedCorrectly) {
+            return action;
+        }
 
-            try {
-                if (notSelf) {
-                    interactionParserService.parse(action, statement);
-                }
-            } catch (e) {
-                notInteraction = true;
-            }
-
-            if (notSelf && notInteraction) {
-                // eslint-disable-next-line no-console
-                console.log(statement, index);
-            }
-        });
-
-        return action;
+        return deprecatedActionParserService.parse(pageObject, astObject, meta);
     }
 }
 
