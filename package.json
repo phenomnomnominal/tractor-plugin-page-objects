@@ -50,7 +50,7 @@
     "babel-eslint": "^8.2.1",
     "babel-loader": "^8.0.0-beta.0",
     "camel-case": "^3.0.0",
-    "css-loader": "^0.28.9",
+    "css-loader": "^1.0.0",
     "escodegen": "^1.9.0",
     "eslint": "^4.17.0",
     "html-loader": "^0.5.5",
