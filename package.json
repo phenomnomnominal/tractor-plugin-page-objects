@@ -60,7 +60,7 @@
     "@tractor/cli": "^1.0.0-alpha.15",
     "@tractor/core": "^1.0.0-alpha.15",
     "@tractor/unit-test": "^1.0.0-alpha.15",
-    "babel-eslint": "^8.2.6",
+    "babel-eslint": "^9.0.0",
     "babel-loader": "8.0.0-beta.2",
     "camel-case": "^3.0.0",
     "css-loader": "^1.0.0",
