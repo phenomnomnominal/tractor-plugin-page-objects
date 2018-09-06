@@ -60,7 +60,7 @@
     "@tractor/cli": "^1.0.1-beta.2",
     "@tractor/core": "^1.0.1-beta.2",
     "@tractor/unit-test": "^1.0.1-beta.2",
-    "@tractor-plugins/mocha-specs": "^0.1.0",
+    "@tractor-plugins/mocha-specs": "^0.2.0",
     "babel-eslint": "^8.2.6",
     "babel-loader": "8.0.0-beta.2",
     "camel-case": "^3.0.0",
