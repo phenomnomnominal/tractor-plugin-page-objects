@@ -41,7 +41,7 @@
     "build": "src/**/*.js"
   },
   "dependencies": {
-    "@tractor-plugins/browser": "^0.2.5",
+    "@tractor-plugins/browser": "^1.0.1",
     "babel-polyfill": "^6.26.0",
     "esprima": "^4.0.1",
     "esquery": "^1.0.1",
