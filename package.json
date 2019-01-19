@@ -58,7 +58,7 @@
     "@babel/polyfill": "^7.0.0",
     "@babel/preset-env": "^7.1.0",
     "@babel/register": "^7.0.0",
-    "@tractor-plugins/mocha-specs": "^0.2.5",
+    "@tractor-plugins/mocha-specs": "^1.0.1",
     "@tractor/cli": "^1.0.1-beta.10",
     "@tractor/core": "^1.0.1-beta.10",
     "@tractor/unit-test": "^1.0.1-beta.10",
